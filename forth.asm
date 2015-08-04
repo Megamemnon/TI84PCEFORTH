@@ -1,5 +1,5 @@
 ; TI 84 Plus CE Forth by Brian O'Dell
-; Based on Itsy-Forth by John Metcalf http://www.retroprogramming.com/2012/03/itsy-forth-1k-tiny-compiler.html
+; Inspired by Itsy-Forth by John Metcalf http://www.retroprogramming.com/2012/03/itsy-forth-1k-tiny-compiler.html
 .ASSUME ADL=1
 
 .nolist 
