@@ -2528,9 +2528,9 @@ xabout:
 dabout:
 	jp		dforth
 
-; OPEN - ( n addr -- n2 addr2 )opens APPVAR with name identified 
+; OPEN - ( addr -- n2 addr2 )opens APPVAR with name identified 
 ; by zero terminated string at addr (creates appvar if doesn't exist
-; with length n bytes); returns address of appvar space at addr2 and 
+; with length 256 bytes); returns address of appvar space at addr2 and 
 ; appvar size of n2 bytes
 lopen:
 	.dl		labout
@@ -2542,31 +2542,37 @@ xopen:
 	.dl		dopen
 dopen:
 	pop		hl
-	push	hl
+	ld		de,appvar+1
+	ld		c,8
+OpenMovChar:
+	ld		a,(hl)
+	ex		de,hl
+	ld		(hl), a
+	dec		c
+	inc		hl
+	ex		de,hl
+	inc		hl
+	ld		a,0
+	cp		c
+	jr		nz,openMovChar
+openFindVar:
+	ld		hl,appvar
 	call	_Mov9ToOP1 ; put it in OP1
 	call	_ChkFindSym ; look for it in the VAT
-	jr 		nc,VarFound 
-CreateVar: 
-	pop		hl
-	push	hl
+	jr 		nc,openVarFound 
+	ld		hl,appvar
 	call	_Mov9ToOP1
-	pop		hl
-	pop		bc
-	push	bc
-	push	hl
-	push 	bc
-	pop		hl
+	ld		hl,256
 	call	_CreateAppVar 
-	jr 		VarInRam 
-VarFound: 
+	jr 		openVarInRam 
+openVarFound: 
 	call	_ChkinRam
-	jr		z,VarInRam
-	pop		hl
-	push	hl
+	jr		z,openVarInRam
+	ld		hl,appvar
 	call	_Mov9ToOP1 
 	call	_Arc_Unarc
-	jr		dopen ;find again in ram 
-VarInRam: 
+	jr		openFindVar ;find again in ram 
+openVarInRam: 
 	ex		de,hl
 	ld		de,0
 	ld		a,(hl) ; get appvar size
@@ -2575,11 +2581,11 @@ VarInRam:
 	ld		a,(hl)
 	ld		d,a
 	inc		hl
-	pop		bc ; drop appvar name str ptr
-	pop		bc ; drop length
 	push	de ; appvar length
 	push	hl ; appvar ptr
 	jp		next
+appvar:
+	.db		015h,0,0,0,0,0,0,0,0
 
 ; SAVE
 lsave:
