@@ -64,7 +64,7 @@ popde:
 ; data field - d*: - code (primitive word), execution tokens (compound word)
 ;              memory space (variable)
 
-; @ (fetch) - ( addr -- n ) put value at addr on top of stack
+; @ (fetch) - ( addr -- n ) push long value at memory address addr to top of stack
 lfetch:
 	.dl		0
 ffetch:
@@ -79,7 +79,7 @@ dfetch:
 	push	bc
 	jp		next
 
-; C@ (char fetch) - ( addr -- char ) put character (byte) at addr on top of stack
+; C@ (char fetch) - ( addr -- char ) psht character (byte) value at memory address addr to top of stack
 lcfetch:
 	.dl		lfetch
 fcfetch:
@@ -95,7 +95,7 @@ dcfetch:
 	push	bc
 	jp		next
 
-; ! (store) - ( n addr -- ) Store n at addr
+; ! (store) - ( n addr -- ) Store n (unsigned long) at memory address addr
 lstor:
 	.dl		lcfetch
 fstor:
@@ -110,7 +110,7 @@ dstor:
 	ld		(hl), bc
 	jp		next
 
-; C! (char store) - ( char addr -- ) store character (byte) at addr
+; C! (char store) - ( char addr -- ) push character (byte) value at memory address addr to the stack
 lcstor:
 	.dl		lstor
 fcstor:
@@ -125,7 +125,7 @@ dcstor:
 	ld		(hl), c
 	jp		next
 
-; IP - Instruction Pointer; contains a ptr to the currently executing instruction in the instruction stream
+; IP - Instruction Pointer variable
 lip:
 	.dl		lcstor
 fip:
@@ -137,7 +137,7 @@ xip:
 dip:
 	.dl		0
 
-; CXT - Current Execution Token; contains a pointer to the current word's execution token
+; CXT - Current Execution Token variable
 lcxt:
 	.dl		lip
 fcxt:
@@ -149,7 +149,7 @@ xcxt:
 dcxt:
 	.dl		0
 
-; STATE - compilation mode (1) or interpreter mode (0)
+; STATE - STATE variable; compilation mode (1) or interpreter mode (0)
 lstate:
 	.dl		lcxt
 fstate:
@@ -161,7 +161,7 @@ xstate:
 dstate:
 	.dl		0
 
-; RSP - return stack pointer
+; RSP - Return Stack Pointer variable
 lrsp:
 	.dl		lstate
 frsp:
@@ -173,7 +173,7 @@ xrsp:
 drsp:
 	.dl		drsb
 
-; RSB - Return Stack Buffer
+; RSB - Return Stack Buffer variable; contains 32 long Return Stack Buffer
 lrsb:
 	.dl		lrsp
 frsb:
@@ -185,7 +185,7 @@ xrsb:
 drsb:
 	.dl		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
-; CSP - control stack pointer
+; CSP - Control Stack Pointer variable
 lcsp:
 	.dl		lrsb
 fcsp:
@@ -197,7 +197,7 @@ xcsp:
 dcsp:
 	.dl		dcsb
 
-; CSB - Control Stack Buffer
+; CSB - Control Stack Buffer variable; contains 32 long Control Stack Buffer
 lcsb:
 	.dl		lcsp
 fcsb:
@@ -209,7 +209,7 @@ xcsb:
 dcsb:
 	.dl		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
-; #TIB - ( - addr ) push address of #TIB (dnotib) on the stack
+; #TIB - #TIB variable; contains number of characters in TIB
 lnotib:
 	.dl		lcsb
 fnotib:
@@ -221,7 +221,7 @@ xnotib:
 dnotib:
 	.dl		0
 
-; TIB - ( - addr ) push address of TIB on the stack
+; TIB - TIB variable; contains 84 Byte TIB (Terminal Input Buffer)
 ltib:
 	.dl		lnotib
 ftib:
@@ -233,7 +233,7 @@ xtib:
 dtib:
 	.db		0,"012345678901234567890123456789012345678901234567890123456789012345678901234567890123"
 
-; SOURCE
+; SOURCE - ( -- TIB #TIB) pushes address of TIB and #TIB to the top of the stack
 lsource:
 	.dl		ltib
 fsource:
@@ -252,7 +252,7 @@ dsource:
 	push	hl
 	jp		next
 
-; >IN - index of the next available byte in tib
+; >IN - >IN variable; contains an index of the next byte in TIB; used by WORD when parsing words from the TIB
 ltoin:
 	.dl		lsource
 ftoin:
@@ -264,7 +264,7 @@ xtoin:
 dtoin:
 	.dl		0
 
-; BASE - number base (not currently used)
+; BASE - BASE variable; contains the current number base (not currently used)
 lbase:
 	.dl		ltoin
 fbase:
@@ -276,7 +276,7 @@ xbase:
 dbase:
 	.dl		10
 
-; PAD - 84 byte buffer for programmer use
+; PAD - PAD variable; contains an 84 byte buffer for programmer use
 lpad:
 	.dl		lbase
 fpad:
@@ -289,7 +289,7 @@ dpad:
 	.db		"012345678901234567890123456789012345678901234567890123456789012345678901234567890123"
 
 
-; SPAD - another PAD
+; SPAD - SPAD variable; contains a PAD-like 84 byte buffer for system use
 lspad:
 	.dl		lpad
 fspad:
@@ -301,8 +301,7 @@ xspad:
 dspad:
 	.db		"012345678901234567890123456789012345678901234567890123456789012345678901234567890123"
 
-; " - ( " ccc " - addr) - copies characters from input stream to a 
-; length prefixed string in SPAD and puts the address of SPAD on the stack
+; " (Double Quote) - ( " ccc " - addr) - copies characters from input stream to a length prefixed string in SPAD and puts the address of SPAD on the stack
 ldquote:
 	.dl		lspad
 fdquote:
@@ -328,7 +327,7 @@ xecs:
 decs:
 	.dl		xclr,xdup,xcount,xtype,xecs2,xexit
 
-; ecs2
+; ecs2 - used by ECS
 lecs2:
 	.dl		lecs
 fecs2:
@@ -561,7 +560,7 @@ ecs2rmax:
 ecs2cmax:
 	.db		0
 
-; CLR
+; CLR - ( -- ) clears the display and sets the current cursor position to row 0 column 0
 lclr:
 	.dl		lecs2
 fclr:
@@ -576,7 +575,7 @@ dclr:
 	ld		(curRow),hl
 	jp		next
 
-; QUIT - launch outer interpreter
+; QUIT - ( -- ) launch outer interpreter
 lquit:
 	.dl		lclr
 fquit:
@@ -593,7 +592,7 @@ dquit:
 	ld		ix, (ix)	
 	jp		(ix)
 
-; = - ( n1  n2 - n3 ) if n1!=n2 then n3 will be zero; otherwise n3=1
+; = - ( n1  n2 - flag ) if n1=n2 then flag=1; otherwise flag=0
 lequal
 	.dl		lquit
 fequal:
@@ -617,7 +616,7 @@ equala:
 	push	hl
 	jp		next
 
-; <
+; < - ( n1 n2 -- flag ) if n1<n2 then flag=1; otherwise flag=0
 llst:
 	.dl		lequal
 flst:
@@ -641,7 +640,7 @@ lsta:
 	push	bc
 	jp		next
 
-; >
+; > - ( n1 n2 -- flag ) if n1>n2 then flag=1; otherwise flag=0
 lgrt:
 	.dl		llst
 fgrt:
@@ -665,7 +664,7 @@ grta:
 	push	bc
 	jp		next
 
-; 0< - ( n - flag ) flag is true if n < 0
+; 0< - ( n - flag ) flag=1 if n < 0
 lzlt:
 	.dl		lgrt
 fzlt:
@@ -679,7 +678,7 @@ dzlt:
 	push	bc
 	jp		next
 
-; 0= - ( n - flag ) flag is true if n = 0
+; 0= - ( n - flag ) flag=1 if n = 0
 lzeq:
 	.dl		lzlt
 fzeq:
@@ -703,7 +702,7 @@ zeqa:
 	push	bc
 	jp		next
 
-; 0> - ( n - flag ) flag is true if n > 0
+; 0> - ( n - flag ) flag=1 if n > 0
 lzgt:
 	.dl		lzeq
 fzgt:
@@ -743,7 +742,7 @@ dplus:
 	push	hl
 	jp		next
 
-; minus - ( n1 n2 - n3 ) n3 n1 - n2
+; - (minus) - ( n1 n2 - n3 ) n3 = n1 - n2
 lminus:
 	.dl		lplus
 fminus:
@@ -759,7 +758,7 @@ dminus:
 	push	hl
 	jp		next
 
-; X ( n1 n2 - n3 ) where n3 = n1 * n2
+; * (multiply) - ( n1 n2 -- n3 ) n3 = n1 * n2
 lmult:
 	.dl		lminus
 fmult:
@@ -797,7 +796,7 @@ multb:
 	push	bc
 	jp		next
 
-; / - ( n1 n2 - n3 ) where n3 = n1/n2 and n2 is an 8 bit value
+; / - ( n1 n2 - n3 ) n3 = n1/n2 and n2 is an 8 bit value
 
 ldiv:
 	.dl		lmult
@@ -817,7 +816,7 @@ ddiv:
 	push	hl
 	jp		next
 
-; /MOD - ( n1 n2 - n3 ) where n3 = n1/n2 and n2 is an 8 bit value
+; /MOD - ( n1 n2 - n3 ) n3 = n1/n2 and n2 is an 8 bit value
 
 ldivmod:
 	.dl		ldiv
@@ -840,7 +839,7 @@ ddivmod:
 	push	hl
 	jp		next
 
-; 1+
+; 1+ - ( n -- n+1 )
 l1p:
 	.dl		ldivmod
 f1p:
@@ -855,7 +854,7 @@ d1p:
 	push	bc
 	jp		next
 
-; 1-
+; 1- - ( n -- n-1 )
 l1m:
 	.dl		l1p
 f1m:
@@ -870,7 +869,7 @@ d1m:
 	push	bc
 	jp		next
 
-; 2+
+; 2+ - ( n -- n+2 )
 l2p:
 	.dl		l1m
 f2p:
@@ -886,7 +885,7 @@ d2p:
 	push	bc
 	jp		next
 
-; 2-
+; 2- - ( n -- n-2 )
 l2m:
 	.dl		l2p
 f2m:
@@ -902,7 +901,7 @@ d2m:
 	push	bc
 	jp		next
 
-; rot - ( n1 n2 n3 - n2 n3 n1)
+; ROT - ( n1 n2 n3 -- n2 n3 n1)
 lrot:
 	.dl		l2m
 frot:
@@ -920,7 +919,7 @@ drot:
 	push	hl
 	jp		next
 
-; drop	- ( n - )
+; DROP	- ( n -- )
 ldrop:
 	.dl		lrot
 fdrop:
@@ -933,7 +932,7 @@ ddrop:
 	pop		hl
 	jp		next
 
-; 2drop	- ( n1 n2 - )
+; 2DROP	- ( n1 n2 -- )
 l2drop:
 	.dl		ldrop
 f2drop:
@@ -947,7 +946,7 @@ d2drop:
 	pop		hl
 	jp		next
 
-; dup - ( n - n n )
+; DUP - ( n -- n n )
 ldup:
 	.dl		l2drop
 fdup:
@@ -962,7 +961,7 @@ ddup:
 	push	hl
 	jp		next
 
-; 2dup - ( n1 n2 - n1 n2 n1 n2 )
+; 2DUP - ( n1 n2 -- n1 n2 n1 n2 )
 l2dup:
 	.dl		ldup
 f2dup:
@@ -980,7 +979,7 @@ d2dup:
 	push	bc
 	jp		next
 
-; swap - ( n1 n2 - n2 n1 )
+; SWAP - ( n1 n2 -- n2 n1 )
 lswap:
 	.dl		l2dup
 fswap:
@@ -996,7 +995,7 @@ dswap:
 	push	hl
 	jp		next
 
-; over
+; OVER - ( n1 n2 -- n1 n2 n1 )
 lover:
 	.dl		lswap
 fover:
@@ -1013,7 +1012,7 @@ dover:
 	push	de
 	jp		next
 
-; and
+; AND - ( n1 n2 -- n3 ) bitwise AND; n3 = n1 AND n2
 land:
 	.dl		lover
 fand:
@@ -1035,7 +1034,7 @@ dand:
 	push	bc
 	jp		next
 
-; OR
+; OR - ( n1 n2 -- n3 ) bitwise OR; n3 = n1 OR n2
 lor:
 	.dl		land
 for:
@@ -1057,7 +1056,7 @@ dor:
 	push	bc
 	jp		next
 
-; OR
+; XOR - ( n1 n2 -- n3 ) bitwise exclusive OR; n3 = n1 XOR n2
 lxor:
 	.dl		lor
 fxor:
@@ -1079,7 +1078,7 @@ dxor:
 	push	bc
 	jp		next
 
-; if - ( n - ) if item on top of stack is 0, moves instruction pointer to instruction after THEN
+; IF - ( n -- ) if item on top of stack is 0, moves instruction pointer to instruction after ELSE (or THEN if no ELSE). Nested IF [ELSE] THEN constructs are supported.
 lif:
 	.dl		lxor
 fif:
@@ -1090,27 +1089,6 @@ xif:
 	.dl		dif
 dif:
 	pop		bc
-
-;	push	af
-;	push	bc
-;	push	de
-;	push	hl
-;	push	ix
-;	push	iy
-;
-;	ld		hl,0
-;	ld		l,c
-;	call	_Disphl
-;	call	_NewLine
-;	call	_GetKey
-;
-;	pop		iy
-;	pop		ix
-;	pop		hl
-;	pop		de
-;	pop		bc
-;	pop		af
-
 	ld		a,0
 	cp		b
 	jr		nz,ifdone
@@ -1134,26 +1112,6 @@ ifcrawl:
 	jr		ifcrawl
 ifnotif:
 	ld		hl, xelse 
-
-;	push	af
-;	push	bc
-;	push	de
-;	push	hl
-;	push	ix
-;	push	iy
-;
-;	ex		de,hl
-;	call	_Disphl
-;	call	_NewLine
-;	call	_GetKey
-;
-;	pop		iy
-;	pop		ix
-;	pop		hl
-;	pop		de
-;	pop		bc
-;	pop		af
-
 	scf
 	ccf
 	sbc		hl,de
@@ -1173,7 +1131,7 @@ ifelse:
 ifdone:
 	jp		next
 
-; else
+; ELSE - ( -- ) skips to corresponding THEN; nested IF [ELSE] THEN constructs are supported.
 lelse:
 	.dl		lif
 felse:
@@ -1211,7 +1169,7 @@ elsenext:
 elsedone:
 	jp		next
 
-; then - ( - ) does nothing; placeholder in instruction stream for IF 
+; THEN - ( - ) does nothing; placeholder in instruction stream for IF 
 lthen:
 	.dl		lelse
 fthen:
@@ -1223,7 +1181,7 @@ xthen:
 dthen:
 	jp		next
 
-; DO
+; DO - ( final start -- ) sets a control stack counter to START value, records FINAL value in control stack for future reference and marks the beginning of a repeatable loop 
 ldo:
 	.dl		lthen
 fdo:
@@ -1244,7 +1202,7 @@ ddo:
 	call	pushde ; push counter start value onto control stack
 	jp		next
 
-; LOOP
+; LOOP - ( -- ) increments control stack counter for corresponding DO and returns control to corresponding DO if counter is not equal to FINAL (see DO).
 lloop:
 	.dl		ldo
 floop:
@@ -1278,7 +1236,7 @@ loopdone:
 	call	popde ; pop the DO ptr off the control stack 
 	jp		next
 
-; +LOOP
+; +LOOP - ( INCREMENT -- ) like LOOP but uses INCREMENT value instead of incrementing the counter by 1
 lploop:
 	.dl		lloop
 fploop:
@@ -1315,7 +1273,7 @@ ploopdone:
 	call	popde ; pop the DO ptr off the control stack 
 	jp		next
 
-; LEAVE
+; LEAVE - ( -- ) leaves current DO LOOP; resumes execution immediately after the next LOOP and pops the current DO LOOP's counter from the control stack.
 lleave:
 	.dl		lploop
 fleave:
@@ -1348,7 +1306,7 @@ leavecrawl:
 leavedone:
 	jp		next
 
-; lit - ( - n ) pushes next 'instruction' in the instruction stream on the stack as a literal number
+; [LIT] - ( - n ) pushes next long value (3 bytes) in the instruction stream on the stack as a literal number
 llit:
 	.dl		lleave
 flit:
@@ -1367,7 +1325,7 @@ dlit:
 	push	bc
 	jp		next
 
-; accept - ( addr n1 - n2 ) input n characters into tib
+; ACCEPT - ( addr n1 - n2 ) input n characters from the terminal into buffer located at addr
 laccept:
 	.dl		llit
 faccept:
@@ -1460,7 +1418,7 @@ acceptclr
 	call	_Puts
 	jp		daccept
 
-; space
+; SPACE - ( -- ) prints a space character to the display
 lspc:
 	.dl		laccept
 fspc:
@@ -1474,7 +1432,7 @@ dspc:
 	call	_Putc
 	jp		next
 
-; BL
+; BL - ( -- 020h ) pushes the value of a space character onto the stack; in this implementation the space is decimal 32, hex 20.
 lbl:
 	.dl		lspc
 fbl:
@@ -1488,7 +1446,7 @@ dbl:
 	push	hl
 	jp		next
 
-; word ( char - addr) - get next word in tib
+; WORD ( CHAR -- ADDR ) - get next word in TIB where CHAR is the delimiting character; pushes the address of the word onto the stack
 lword:
 	.dl		lbl
 fword:
@@ -1577,7 +1535,7 @@ wordf:
 	ld		(dtoin), hl
 	jp		next
 
-; find	( addr1 n1 - [addr2] n2) OR ( addr1 n1 - addr1 n1 0 )
+; FIND	- ( addr1 n1 -- [addr2] n2) OR ( addr1 n1 -- addr1 n1 0 )
 ;- if string at addr1 (with count n1) is found 
 ; in the primitives dictionary, addr2 is an execution token and n2=1, otherwise 
 ; n2=0 and addr2 is not provided
@@ -1598,48 +1556,10 @@ finda:
 	push	de
 	push	bc
 	push	hl
-
-	; push	af
-	; push	bc
-	; push	de
-	; push	hl
-	; push	ix
-	; push	iy
-
-	; call	_Disphl
-
-	; pop		iy
-	; pop		ix
-	; pop		hl
-	; pop		de
-	; pop		bc
-	; pop		af
-
 	inc		hl
 	inc		hl
 	inc		hl ; skip link field
 	inc		hl ; skip flag field
-
-	; push	af
-	; push	bc
-	; push	de
-	; push	hl
-	; push	ix
-	; push	iy
-
-	; inc		hl
-	; ld		a,(hl)
-	; call	_Putc
-	; call	_NewLine
-	; call	_GetKey
-
-	; pop		iy
-	; pop		ix
-	; pop		hl
-	; pop		de
-	; pop		bc
-	; pop		af
-
 	ld		a,(hl); get count of dictionary word
 	cp		c	; compare to count of provided string
 	jp		nz,findc ; not equal, get previous word in dict
@@ -1647,27 +1567,6 @@ finda:
 ; compare letters in given word to current word
 findb:
 	ld		a,(de)
-
-	; push	af
-	; push	bc
-	; push	de
-	; push	hl
-	; push	ix
-	; push	iy
-
-	; call	_Putc
-	; ld		a,(hl)
-	; call	_Putc
-	; call	_NewLine
-	; call	_GetKey
-
-	; pop		iy
-	; pop		ix
-	; pop		hl
-	; pop		de
-	; pop		bc
-	; pop		af
-	
 	cpi
 	jp		nz,findc
 	ld		a,0
@@ -1705,52 +1604,14 @@ findd:
 	ld		c,1
 	push	hl
 	push	bc
-
-	; push	af
-	; push	bc
-	; push	de
-	; push	hl
-	; push	ix
-	; push	iy
-
-	; call	_Disphl
-	; call	_GetKey
-
-	; pop		iy
-	; pop		ix
-	; pop		hl
-	; pop		de
-	; pop		bc
-	; pop		af
-
 	jp		next
 ; did not find a match
 finde:
 	ld		bc,0
 	push	bc
-	
-;	push	af
-;	push	bc
-;	push	de
-;	push	hl
-;	push	ix
-;	push	iy
-;
-;	ld		a,023h
-;	call	_Putc
-;	call	_NewLine
-;	call	_GetKey
-;
-;	pop		iy
-;	pop		ix
-;	pop		hl
-;	pop		de
-;	pop		bc
-;	pop		af
-
 	jp		next
 
-; emit - ( char - ) send char to monitor
+; EMIT - ( CHAR -- ) send char to monitor
 lemit:
 	.dl		lfind
 femit:
@@ -1765,7 +1626,7 @@ demit:
 	call	_Putc
 	jp		next
 
-; count - ( addr1 - int addr2 ) accept counted string as input and return ptr to string and count
+; COUNT - ( addr1 -- int addr2 ) accept counted string as input and return ptr to string and count
 lcount:
 	.dl		lemit
 fcount:
@@ -1783,7 +1644,7 @@ dcount:
 	push	bc
 	jp		next
 
-; type - ( n addr - ) accept ptr to string and count and emit characters to monitor
+; TYPE - ( n addr -- ) accept ptr to string and count and emit characters to monitor
 ltype
 	.dl		lcount
 ftype:
@@ -1809,7 +1670,7 @@ typea:
 typeb:
 	jp		next
 
-; . - ( n - ) sent n to monitor as a number
+; . (dot) - ( n -- ) displays n as a number
 ldot:
 	.dl		ltype
 fdot:
@@ -1823,7 +1684,7 @@ ddot:
 	call	_Disphl
 	jp		next
 
-; U. 
+; U. - ( n -- ) displays n as an unsigned integer
 ludot:
 	.dl		ldot
 fudot:
@@ -1835,7 +1696,7 @@ xudot:
 dudot:
 	jp		ddot
 
-; prompt - ( - ) display prompt message		
+; PROMPT - ( -- ) display prompt message (for example: "OK>")		
 lprompt:
 	.dl		ludot
 fprompt:
@@ -1852,7 +1713,7 @@ dprompt:
 	call	_Puts
 	jp		next
 
-; newline - ( - ) call TI's _NewLine
+; CR - ( - ) call TI's _NewLine
 lcr:
 	.dl		lprompt
 fcr:
@@ -1867,7 +1728,7 @@ dcr:
 	ld		(curCol),a
 	jp		next
 
-; BYE - ( - ) quit FORTH
+; BYE - ( -- ) quit FORTH and return to the TI OS
 lbye:
 	.dl		lcr
 fbye:
@@ -1891,7 +1752,7 @@ dbye:
 	pop		ix
 	ret
 
-; execute - ( addr - ) executes execution token at addr
+; EXECUTE - ( addr -- ) executes execution token at addr
 lexec:
 	.dl		lbye
 fexec:
@@ -1924,7 +1785,7 @@ dexec:
 	ld		ix, (hl)
 	jp		(ix)
 
-; EXIT - quits executing compiled word and returns control to the calling routine
+; EXIT - ( -- ) quits executing compiled word and returns control to the calling routine
 lexit:
 	.dl		lexec
 fexit:
@@ -1937,7 +1798,7 @@ dexit:
 	call	popip
 	jp		next
 
-; CMOVE - ( addr1 addr2 n - ) moves n bytes from addr1 to addr2
+; CMOVE - ( addr1 addr2 n -- ) moves n bytes from addr1 to addr2
 lcmove:
 	.dl		lexit
 fcmove:
@@ -1985,7 +1846,7 @@ dnts:
 	ld		(hl),a
 	jp		next
 
-; NTS.
+; NTS. - ( ADDR -- ) prints null terminated string at provided address
 lntsdot:
 	.dl		lnts
 fntsdot:
@@ -1999,7 +1860,7 @@ dntsdot:
 	call	_Puts
 	jp		next
 
-; CRCODE
+; CRCODE - ( -- ) CREATE code; intended for internal use by the CREATE word only
 lcrcode:
 	.dl		lntsdot
 fcrcode:
@@ -2024,7 +1885,7 @@ dcrcode:
 	ld		(hl), bc ; set STATE to Compile
 	jp		next
 
-; CREATE - add next word to a new dictionary entry
+; CREATE - ( -- ) add next word to a new dictionary entry
 lcreate:
 	.dl		lcrcode
 fcreate:
@@ -2055,7 +1916,7 @@ dcreate:
 	.dl		docolon
 	.dl		xexit
 
-; [COMPILE] - copies next Long (execution token) in current colon def to HERE 
+; [COMPILE] - ( -- ) copies next Long (execution token) in current colon def to HERE 
 ; and increments HERE then increments the instruction pointer to skip it
 lbcompile:
 	.dl		lcreate
@@ -2080,7 +1941,7 @@ dbcompile:
 	ld		(dhere), hl
 	jp		next
 
-; , - ( xt - ) compiles execution token
+; , (comma) - ( xt -- ) compiles execution token to the current word definition
 lcoma:
 	.dl		lbcompile
 fcoma:
@@ -2099,7 +1960,7 @@ dcoma:
 	ld		(dhere), hl
 	jp		next
 
-; LITERAL - ( n - ) compiles a number which will be placed 
+; LITERAL - ( n - ) compiles a number n to the current word definition such that n will be placed 
 ; on the stack when the current word is executed
 lliteral:
 	.dl		lcoma
@@ -2124,7 +1985,7 @@ dliteral:
 	ld		(dhere), hl
 	jp		next
 	
-; : begin compiling a new word to dictionary
+; : (colon) - ( -- ) begin compiling a new word to dictionary
 lcoln:
 	.dl		lliteral
 fcoln:
@@ -2137,7 +1998,7 @@ dcoln:
 	.dl		xcreate
 	.dl		xexit
 
-; ; - leave compile mode and complete latest word in dictionary
+; ; (semicolon) - ( -- ) leave compile mode and complete latest word in dictionary
 lsemicol:
 	.dl		lcoln
 fsemicol:
@@ -2155,7 +2016,7 @@ dsemicol:
 	.dl		xstor
 	.dl		xexit
 
-; VARIABLE
+; VARIABLE - ( -- ) create a new WORD in the dictionary using the next word in the input stream as it name and setting aside 3 bytes in the new definition's data field for storing a long value.
 lvar:
 	.dl		lsemicol
 fvar:
@@ -2194,7 +2055,7 @@ dvar
 	.dl		xstor ; crcode set compile mode, so disable it
 	.dl		xexit
 
-; TRAV- - ( xt - addr ) addr is a ptr to the length pre-fixed string 
+; TRAV- - ( xt -- addr ) traverses the memory from an execution token to the counted string which is the word's name; addr is a ptr to the length pre-fixed string 
 ; containing the name of the word whose execution token is xt
 ltrav:
 	.dl		lvar
@@ -2217,7 +2078,7 @@ trava:
 	push	hl
 	jp		next
 
-; IM? - ( xt - flag ) returns Immediate flag field for a given execution token
+; IM? - ( XT -- FLAG) returns Immediate flag field for a given execution token
 limq:
 	.dl		ltrav
 fimq:
@@ -2243,7 +2104,7 @@ imqa:
 	jp		next
 	
 
-; >NUMBER - ( addr n - n2 )
+; >NUMBER - ( addr n -- n2 ) addr and n define a counted string and its count; n2 is the value of that string converted to a number
 ltonum:
 	.dl		limq
 ftonum:
@@ -2398,7 +2259,7 @@ x10:
 	add		a,h
 	ret
 
-; branch - ( addr - ) sets 
+; GOTO - ( addr - ) sets instruction pointer to addr; intended for internal use only 
 lbranch:
 	.dl		ltonum
 fbranch:
@@ -2422,7 +2283,7 @@ dbranch:
 	jp		next
 
 
-; KEY
+; KEY - ( -- n ) calls TI's GetKey function and pushes the returned key onto the stack
 lkey:
 	.dl		lbranch
 fkey:
@@ -2438,7 +2299,7 @@ dkey:
 	push	hl
 	jp		next
 
-; WORDS - ( - ) list words
+; WORDS - ( - ) list all words in the current dictionary
 lwords:
 	.dl		lkey
 fwords:
@@ -2454,7 +2315,7 @@ wordsa:
 	.dl		xlit, 4, xplus, xcount, xtype, xspc
 	.dl		xbranch, wordsa
 
-; FORGET
+; FORGET - ( XT -- ) forgets the word for the provided execution token and all subsequently defined words
 lforget:
 	.dl		lwords
 fforget:
@@ -2467,7 +2328,7 @@ dforget:
 	.dl		xfind, xif, xtrav, x2m, x2m, xdup, xhere, xstor
 	.dl		xfetch, xlast, xstor, xthen, xexit
 
-; SEE
+; SEE - ( XT -- ) displays words used in the definition of the provided execution token
 lsee:
 	.dl		lforget
 fsee:
@@ -2483,7 +2344,7 @@ dseeagain:
 	.dl		xif, xdrop, xexit, xthen
 	.dl		xtrav, xcount, xtype, xspc, xbranch, dseeagain
 
-; .S - ( n1 n2 n3 - n1 n2 n3 ) view top three items on stack in the order n1, n2, n3
+; .S - ( n1 n2 n3 -- n1 n2 n3 ) view top three items on stack in the order n1, n2, n3
 ldots:
 	.dl		lsee
 fdots:
@@ -2516,7 +2377,7 @@ ddots:
 	call	_Disphl
 	jp		next
 
-; about
+; ABOUT - ( -- ) displays information about this FORTH implementation
 labout:
 	.dl		ldots
 fabout:
@@ -2528,9 +2389,9 @@ xabout:
 dabout:
 	jp		dforth
 
-; OPEN - ( addr -- n2 addr2 )opens APPVAR with name identified 
+; OPEN - ( n addr -- n2 addr2 )opens APPVAR with name identified 
 ; by zero terminated string at addr (creates appvar if doesn't exist
-; with length 256 bytes); returns address of appvar space at addr2 and 
+; with length n bytes); returns address of appvar space at addr2 and 
 ; appvar size of n2 bytes
 lopen:
 	.dl		labout
@@ -2587,7 +2448,8 @@ openVarInRam:
 appvar:
 	.db		015h,0,0,0,0,0,0,0,0
 
-; SAVE
+; SAVE - ( -- ) updates the dictionary in the archive version of the current program. 
+; New words defined before a SAVE will be available the next time the program is run.
 lsave:
 	.dl		lopen
 fsave:
@@ -2627,7 +2489,7 @@ dsave:
 	push	de
 	jp		next
 
-; test - ( addr -- ) write 10 bytes with char A to addr
+; T - ( addr -- ) write 10 bytes with char A to addr
 ltest:
 	.dl		lsave
 ftest:
@@ -2671,7 +2533,6 @@ xlast:
 dlast:
 	.dl		lforth
 
-
 ; SP - print stack ptr
 lpsp:
 	.dl		llast
@@ -2687,7 +2548,7 @@ dpsp:
 	call	_Disphl
 	jp		next
 
-; GK
+; GK - calls TI OS's GetKey, but doesn't use the results
 lgk:
 	.dl		lpsp
 fgk:
@@ -2786,4 +2647,5 @@ dforth:
 	jp		next
 
 	
+
 
